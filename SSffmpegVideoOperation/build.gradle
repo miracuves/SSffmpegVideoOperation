@@ -1,30 +1,32 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        jcenter()
+        maven { url 'https://jitpack.io' }
+    }
+    dependencies {
+        // Add the fat-aar plugin
+        classpath 'com.github.kezong:fat-aar:1.3.8'
+    }
+}
+
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
     id 'maven-publish'
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-// Creates a Maven publication called "release".
-            release(MavenPublication) {
-                from components.release
-                groupId = 'com.simform.videooperations'
-                artifactId = 'videooperations'
-                version = '1.0.8'
-            }
-        }
-    }
-}
+// Apply the fat-aar plugin
+apply plugin: 'com.kezong.fat-aar'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "29.0.3"
+    compileSdkVersion 31
+    buildToolsVersion "31.0.0"
 
     defaultConfig {
         minSdkVersion 24
-        targetSdkVersion 30
+        targetSdkVersion 31
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -47,27 +49,67 @@ android {
     kotlinOptions {
         jvmTarget = '11'
     }
+
+    // Handle resource conflicts by using the first occurrence
     packagingOptions {
+        pickFirst 'META-INF/*.kotlin_module'
+        pickFirst '**/*.xml'
+        pickFirst 'META-INF/*'
+        pickFirst 'META-INF/INDEX.LIST'
+        pickFirst 'META-INF/LICENSE'
+        pickFirst 'META-INF/LICENSE.txt'
+        pickFirst 'META-INF/license.txt'
+        pickFirst 'META-INF/NOTICE'
+        pickFirst 'META-INF/NOTICE.txt'
+        pickFirst 'META-INF/notice.txt'
+        pickFirst 'META-INF/ASL2.0'
         exclude 'META-INF/rxjava.properties'
         exclude 'META-INF/DEPENDENCIES'
-        exclude 'META-INF/INDEX.LIST'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/license.txt'
-        exclude 'META-INF/NOTICE'
-        exclude 'META-INF/NOTICE.txt'
-        exclude 'META-INF/notice.txt'
-        exclude 'META-INF/ASL2.0'
     }
 }
 
+repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    flatDir { dirs 'libs' }
+}
+
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
+
+    // Core dependencies that need to be embedded
+    embed 'com.arthenica:mobile-ffmpeg-full:4.4.LTS'
+    implementation 'com.github.jaiselrahman:FilePicker:1.3.2'
+
+    // Support libraries - you can decide which ones to embed based on your needs
+    // Using implementation for these to avoid resource conflicts
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'pub.devrel:easypermissions:3.0.0'
-    implementation 'com.arthenica:mobile-ffmpeg-full:4.4'
-    implementation 'com.github.jaiselrahman:FilePicker:1.3.2'
 }
 
+// Configuration for handling resource conflicts in the fat-aar plugin
+fataar {
+    // Enable to change conflict strategy (optional)
+    // transitive = true
+
+    // Choose resource merge strategy (optional)
+    // Default is 'override' which uses the first occurrence
+    // resourceMergeStrategy = 'override'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.simform.videooperations'
+                artifactId = 'videooperations'
+                version = '1.0.8'
+            }
+        }
+    }
+}
